@@ -34,13 +34,15 @@ void parseCommand(char * argv[10], char command[1024], int *i, int * fd, int * a
     if (argv[0] && *i >= 2 && ! strcmp(argv[*i - 2], ">")) {
         *redirect = 1;
         argv[*i - 2] = NULL;
-        outfile = argv[*i - 1];
+        *outfile = argv[*i - 1];
         }
     else 
         *redirect = 0; 
 }
 int main() {
 char command[1024];
+char last_command[1024] = "";
+char prompt_text[256] = "hello: ";
 char *token;
 char *outfile;
 //i - index of last argument (i itself is null, i-1 is the last)
@@ -53,13 +55,51 @@ int i, fd, amper, redirect, retid, status;
 char *argv[10];
 while (1)
 {
-    printf("hello: ");
+     printf("%s", prompt_text);
     fflush(stdout);
     readCommand(command);
-    parseCommand(argv, command, &i, &fd, &amper, &redirect, &retid, &status, &outfile);
-    if (strcmp(argv[0], "quit") == 0) {
-        break; // This successfully breaks the main loop!
+    if (strcmp(command, "!!") == 0) {
+        if (last_command[0] == '\0') {
+            continue; // No history yet
+        }
+        // Replace the current command with the last one
+        strcpy(command, last_command);
+        printf("%s\n", command); // Print it so the user sees what is running
+    } else {
+        // If it wasn't !!, save whatever they typed as the new history
+        strcpy(last_command, command); 
     }
+    parseCommand(argv, command, &i, &fd, &amper, &redirect, &retid, &status, &outfile);
+     /* 5. Quit command */
+    if (strcmp(argv[0], "quit") == 0) {
+        exit(0); // will finish the program
+    }
+    /* 1. Prompt command */
+    if (strcmp(argv[0], "prompt") == 0) {
+        // we make sure that the promt is valid: the second word is '=' and there is the 3 word
+        if (argv[1] != NULL && strcmp(argv[1], "=") == 0 && argv[2] != NULL) {
+            strcpy(prompt_text, argv[2]); //copies the new word
+            strcat(prompt_text, ": ");    // adds 'collum' and 'space' at the and
+        }
+        continue; // goes back to the begining without doing fork
+    }
+    /* 2. Status command */
+        if (strcmp(argv[0], "status") == 0) {
+            // WEXITSTATUS 
+            printf("%d\n", WEXITSTATUS(status));
+            continue;
+        }
+
+        /* 3. cd command */
+        if (strcmp(argv[0], "cd") == 0) {
+            if (argv[1] != NULL) {
+                if (chdir(argv[1]) != 0) {
+                    perror("cd failed"); // prints error if it doesnt exicts
+                }
+            }
+            continue;
+        }
+
     if (fork() == 0) { 
         /* redirection of IO ? */
         if (redirect) {
