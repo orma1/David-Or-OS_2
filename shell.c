@@ -6,7 +6,39 @@
 #include "stdlib.h"
 #include "unistd.h"
 #include <string.h>
+void readCommand(char * command){
+     fgets(command, 1024, stdin);
+     command[strlen(command) - 1] = '\0';
+}
+void parseCommand(char * argv[10], char command[1024], int *i, int * fd, int * amper, int * redirect, int * retid, int * status, char** outfile){
+    *i = 0;
+    char *token;
+    token = strtok (command," ");
+    while (token != NULL)
+    {
+        argv[*i] = token;
+        token = strtok (NULL, " ");
+        (*i)++;
+    }
+    argv[*i] = NULL;
 
+    /* Is command empty */
+    if (argv[0] == NULL) return;
+    if (! strcmp(argv[*i - 1], "&")) {
+        *amper = 1;
+        argv[*i - 1] = NULL;
+    }
+    else 
+        *amper = 0; 
+
+    if (argv[0] && *i >= 2 && ! strcmp(argv[*i - 2], ">")) {
+        *redirect = 1;
+        argv[*i - 2] = NULL;
+        outfile = argv[*i - 1];
+        }
+    else 
+        *redirect = 0; 
+}
 int main() {
 char command[1024];
 char *token;
@@ -19,47 +51,15 @@ char *outfile;
 //status - return status of the child process
 int i, fd, amper, redirect, retid, status;
 char *argv[10];
-
 while (1)
 {
     printf("hello: ");
     fflush(stdout);
-    fgets(command, 1024, stdin);
-    command[strlen(command) - 1] = '\0';
-
-    /* parse command line */
-    i = 0;
-    token = strtok (command," ");
-    while (token != NULL)
-    {
-        argv[i] = token;
-        token = strtok (NULL, " ");
-        i++;
+    readCommand(command);
+    parseCommand(argv, command, &i, &fd, &amper, &redirect, &retid, &status, &outfile);
+    if (strcmp(argv[0], "quit") == 0) {
+        break; // This successfully breaks the main loop!
     }
-    argv[i] = NULL;
-
-    /* Is command empty */
-    if (argv[0] == NULL)
-        continue;
-    if (!strcmp(argv[0],"quit")) break;
-    /* Does command line end with & */ 
-    if (! strcmp(argv[i - 1], "&")) {
-        amper = 1;
-        argv[i - 1] = NULL;
-    }
-    else 
-        amper = 0; 
-
-    if (argv[0] && ! strcmp(argv[i - 2], ">")) {
-        redirect = 1;
-        argv[i - 2] = NULL;
-        outfile = argv[i - 1];
-        }
-    else 
-        redirect = 0; 
-
-    /* for commands not part of the shell command language */ 
-
     if (fork() == 0) { 
         /* redirection of IO ? */
         if (redirect) {
