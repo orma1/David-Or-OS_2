@@ -59,7 +59,20 @@ void execute_pipeline(char *command) {
                 cmd_token = strtok(NULL, " ");
             }
             argv[idx] = NULL;
-            
+            if (idx >= 3) {
+                if (strcmp(argv[idx - 2], ">") == 0) {
+                    int out_fd = open(argv[idx - 1], O_WRONLY | O_CREAT | O_TRUNC, 0660);
+                    dup2(out_fd, STDOUT_FILENO);
+                    close(out_fd);
+                    argv[idx - 2] = NULL; // Cut off the > and filename so execvp doesn't see them
+                } 
+                else if (strcmp(argv[idx - 2], ">>") == 0) {
+                    int out_fd = open(argv[idx - 1], O_WRONLY | O_CREAT | O_APPEND, 0660);
+                    dup2(out_fd, STDOUT_FILENO);
+                    close(out_fd);
+                    argv[idx - 2] = NULL;
+                }
+            }
             execvp(argv[0], argv);
             perror("execvp failed");
             exit(1);
