@@ -91,7 +91,7 @@ void execute_pipeline(char *command) {
     }
 }
 void handle_sigint(int sig) {
-    printf("\nYou typed Control-C!\n%s", prompt_text);
+    printf("\nYou typed Control-C!\n%s ", prompt_text);
     fflush(stdout);
 }
 void readCommand(char * command){
