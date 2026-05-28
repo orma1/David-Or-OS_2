@@ -8,6 +8,14 @@
 #include <string.h>
 #include <signal.h>
 char prompt_text[256] = "hello:";
+int status;
+void handler()
+{
+int pid = wait(&status);
+if (pid > 0)
+printf("Child %d finished with exit status %d\n",
+pid, status >> 8);
+}
 void execute_pipeline(char *command) {
     char *commands[10];
     int num_cmds = 0;
@@ -146,6 +154,7 @@ void parseCommand(char * argv[10], char command[1024], int *i, int * fd, int * a
 int main() {
 int signal_done = 0;
 signal(SIGINT, handle_sigint);
+signal(SIGCHLD, handler);
 char command[1024];
 char last_command[1024] = "";
 char *token;
@@ -156,14 +165,14 @@ char *outfile;
 //redirect - instead of printing, we put it in the file listed after '>'
 //retid - child process pid
 //status - return status of the child process
-int i, fd, amper, redirect, retid, status;
+int i, fd, amper, redirect, retid;
 char *argv[10];
 while (1)
 {
      printf("%s ", prompt_text);
     fflush(stdout);
     readCommand(command);
-    if (strcmp(command, "!!") == 0) {
+    if (strcmp(command, "!!") == 0 || strcmp(command, "\x1b[A") == 0) {
         if (last_command[0] == '\0') {
             continue; // No history yet
         }
